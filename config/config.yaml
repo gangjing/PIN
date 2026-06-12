@@ -1,0 +1,32 @@
+timezone: Asia/Shanghai
+color_convention: CN
+default_watchlist: config/watchlist.sample.csv
+report_base_url: ""
+privacy:
+  hide_sensitive_fields: true
+  hide_quantity: true
+  hide_cost: false
+  hide_position_pct: false
+markets:
+  CN:
+    enabled: true
+    sessions:
+      morning_check: "10:30"
+      afternoon_check: "13:45"
+      pre_close_check: "14:00"
+    close_time: "15:00"
+  HK:
+    enabled: true
+    sessions:
+      morning_check: "10:30"
+      afternoon_check: "14:30"
+      pre_close_check: "15:00"
+    close_time: "16:00"
+  US:
+    enabled: true
+    timezone: America/New_York
+    sessions:
+      after_open_check: "10:30"
+      mid_session_check: "13:30"
+      pre_close_check: "15:00"
+    close_time: "16:00"
