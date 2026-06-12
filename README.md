@@ -2,6 +2,8 @@
 
 一个本地可运行的自动看盘 MVP：读取股票池，获取行情，计算基础技术指标和风险信号，生成 JSON、Markdown 摘要和可离线打开的单文件 HTML 报告。配置 OpenAI 和新闻搜索 Key 后，会自动增加中文 AI 分析和新闻摘要。
 
+发布后的报告地址：`https://gangjing.github.io/PIN/latest_report.html`
+
 > 本项目只做分析、提醒和辅助决策，不自动下单，不构成投资建议。
 
 ## 已实现范围
@@ -114,15 +116,15 @@ GOOGLE_SHEET_GID=0
 
 已包含 `.github/workflows/market-watch.yml` 和 `docs/.nojekyll`。在 GitHub 仓库中配置：
 
-- Secrets：`GOOGLE_SHEET_ID`、`GOOGLE_SHEET_GID`
+- 已内置默认 `GOOGLE_SHEET_ID` 和 `GOOGLE_SHEET_GID`
 - 可选 Secrets：`OPENAI_API_KEY`、`BING_SEARCH_API_KEY`
-- 可选 Variables：`REPORT_BASE_URL`，例如 `https://你的用户名.github.io/仓库名`
-- Pages Source 选择 GitHub Actions
+- 可选 Variables：`REPORT_BASE_URL`，例如 `https://gangjing.github.io/PIN`
+- Pages 由 Actions 部署到 GitHub Pages
 
-如果没有设置 `REPORT_BASE_URL`，工作流会默认使用 `https://用户名.github.io/仓库名`。工作流会在北京时间大约 10:30、13:45、14:00 对应的 UTC 时间运行，并把 `docs/` 发布到 GitHub Pages。发布后打开：
+工作流会在 push、手动触发，以及北京时间大约 10:30、13:45、14:00 对应的 UTC 时间运行，并把 `docs/` 发布到 GitHub Pages。发布后打开：
 
 ```text
-https://你的用户名.github.io/仓库名/latest_report.html
+https://gangjing.github.io/PIN/latest_report.html
 ```
 
 ## 测试
