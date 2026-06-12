@@ -1,6 +1,9 @@
 name: Market Watch
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: "30 2 * * 1-5"
     - cron: "45 5 * * 1-5"
