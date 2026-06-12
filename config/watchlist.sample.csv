@@ -1,0 +1,6 @@
+market,ticker,name,type,cost,quantity,position_pct,take_profit,stop_loss,watch_reason,risk_level,enabled,notes
+HK,1810.HK,小米集团,holding,27.8,1000,30,35,25.5,手机+汽车+AIoT,medium,true,长期关注
+US,TTD,Trade Desk,holding,75,50,20,95,68,广告科技,high,true,波动较大
+CN,002594.SZ,比亚迪,watchlist,,,,,,新能源车龙头,medium,true,只观察不持仓
+CN,600519.SH,贵州茅台,watchlist,,,,,,消费龙头,low,true,估值观察
+US,AAPL,Apple,watchlist,,,,,,消费电子与AI,medium,false,disabled 示例
