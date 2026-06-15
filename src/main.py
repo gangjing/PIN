@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 if __package__ is None or __package__ == "":
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -21,6 +21,89 @@ from src.utils import ensure_dirs, load_config, load_env, now_iso, setup_logging
 
 
 logger = logging.getLogger(__name__)
+
+
+def build_portfolio_metrics(stocks: List[Dict[str, Any]]) -> Dict[str, Any]:
+    total_value = 0.0
+    cost_value = 0.0
+    day_change_amount = 0.0
+    holding_count = 0
+    allocation: Dict[str, float] = {}
+    critical_count = 0
+    medium_count = 0
+    news_count = 0
+    negative_news_count = 0
+    top_movers = []
+
+    for stock in stocks:
+        price = stock.get("price")
+        quantity = stock.get("quantity")
+        cost = stock.get("cost")
+        change_pct = stock.get("change_pct")
+        value = None
+        if price is not None and quantity:
+            value = float(price) * float(quantity)
+            total_value += value
+            holding_count += 1
+            market = stock.get("market") or "UNKNOWN"
+            allocation[market] = allocation.get(market, 0.0) + value
+            if change_pct is not None:
+                previous = float(price) / (1 + float(change_pct) / 100) if float(change_pct) != -100 else float(price)
+                day_change_amount += (float(price) - previous) * float(quantity)
+        if cost is not None and quantity:
+            cost_value += float(cost) * float(quantity)
+
+        risk_level = stock.get("computed_risk_level")
+        if risk_level == "high":
+            critical_count += 1
+        elif risk_level == "medium":
+            medium_count += 1
+        stock_news = stock.get("news") or []
+        news_count += len(stock_news)
+        negative_news_count += sum(1 for item in stock_news if item.get("sentiment") == "negative")
+        if change_pct is not None:
+            top_movers.append({
+                "ticker": stock.get("ticker"),
+                "name": stock.get("name"),
+                "market": stock.get("market"),
+                "change_pct": change_pct,
+                "value": value,
+            })
+
+    pnl_amount = total_value - cost_value if cost_value else None
+    pnl_pct = (pnl_amount / cost_value * 100) if cost_value and pnl_amount is not None else None
+    day_change_pct = (day_change_amount / (total_value - day_change_amount) * 100) if total_value and total_value != day_change_amount else None
+    risk_score = min(100, 28 + critical_count * 18 + medium_count * 7 + negative_news_count * 6)
+    if critical_count:
+        risk_label = "elevated"
+    elif risk_score >= 55:
+        risk_label = "watch"
+    else:
+        risk_label = "stable"
+
+    allocation_pct = {}
+    if total_value:
+        allocation_pct = {market: value / total_value * 100 for market, value in allocation.items()}
+
+    return {
+        "base_currency": "CNY",
+        "total_value": total_value if total_value else None,
+        "cost_value": cost_value if cost_value else None,
+        "day_change_amount": day_change_amount if total_value else None,
+        "day_change_pct": day_change_pct,
+        "pnl_amount": pnl_amount,
+        "pnl_pct": pnl_pct,
+        "risk_score": risk_score,
+        "risk_label": risk_label,
+        "holding_count": holding_count,
+        "asset_count": len(stocks),
+        "critical_alerts": critical_count,
+        "medium_alerts": medium_count,
+        "news_count": news_count,
+        "negative_news_count": negative_news_count,
+        "market_allocation": allocation_pct,
+        "top_movers": sorted(top_movers, key=lambda item: abs(float(item.get("change_pct") or 0)), reverse=True)[:6],
+    }
 
 
 def parse_args() -> argparse.Namespace:
@@ -55,6 +138,7 @@ def build_report(args: argparse.Namespace, config: Dict[str, Any]) -> Dict[str, 
         "overall_status": "neutral",
         "market_summary": fetch_market_summary(markets),
         "priority_actions": build_priority_actions(stocks),
+        "portfolio_metrics": build_portfolio_metrics(stocks),
         "stocks": stocks,
         "summary_for_push": "",
         "warnings": warnings,
