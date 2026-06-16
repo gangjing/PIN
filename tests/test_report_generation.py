@@ -26,3 +26,15 @@ def test_html_single_file_contains_data():
     assert "<!doctype html>" in html
     assert "report-data" in html
     assert "Trade Desk" in html
+
+
+def test_html_contains_language_theme_and_offline_ui():
+    html = render_html(sample_report())
+    assert 'data-theme="light"' in html
+    assert 'id="langZh"' in html
+    assert 'id="langEn"' in html
+    assert 'id="themeToggle"' in html
+    assert "个股深度分析" in html
+    assert "Asset Deep Dive" in html
+    assert "Smart News Feed" in html
+    assert "https://cdn" not in html
