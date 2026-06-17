@@ -1,5 +1,5 @@
 from src.html_report import render_html
-from src.report_generator import make_public_stock_report, make_summary
+from src.report_generator import make_encrypted_report_html, make_public_stock_report, make_summary
 
 
 def sample_report():
@@ -80,3 +80,32 @@ def test_public_stock_report_contains_only_selected_stock_and_hides_personal_fie
     assert "take_profit" not in stock
     assert "stop_loss" not in stock
     assert "private note" not in html
+
+
+def test_encrypted_report_hides_plain_html_and_can_be_decrypted():
+    from base64 import b64decode
+    import json
+    import re
+
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+    plain = render_html(sample_report())
+    encrypted = make_encrypted_report_html(plain, "test-password")
+    payload_text = re.search(r'<script id="encrypted-report" type="application/json">(.*?)</script>', encrypted).group(1)
+    payload = json.loads(payload_text)
+
+    assert "Trade Desk" not in encrypted
+    assert "report-data" not in encrypted
+    assert "encrypted-report" in encrypted
+
+    salt = b64decode(payload["salt"])
+    nonce = b64decode(payload["nonce"])
+    aad = b64decode(payload["aad"])
+    ciphertext = b64decode(payload["ciphertext"])
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=payload["iterations"])
+    key = kdf.derive(b"test-password")
+    decrypted = AESGCM(key).decrypt(nonce, ciphertext, aad).decode("utf-8")
+    assert "Trade Desk" in decrypted
+    assert "report-data" in decrypted
