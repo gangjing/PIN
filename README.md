@@ -57,6 +57,7 @@ cp .env.example .env
 - `BING_SEARCH_API_KEY`：启用 Bing News 搜索
 - `GOOGLE_SHEET_ID`：启用 Google Sheet 股票池
 - `GOOGLE_SHEET_GID`：Sheet gid，默认 `0`
+- `PRIVATE_REPORT_PASSWORD`：生成加密完整报告的解锁密码
 - `REPORT_BASE_URL`：报告发布后的基础 URL，用于摘要里的完整报告链接
 
 主配置在 `config/config.yaml`：
@@ -123,6 +124,14 @@ output/share_links.md
 
 `/share/` 目录页默认不会列出所有股票，避免暴露你的完整股票池。
 
+如果在 GitHub Secrets 里配置了 `PRIVATE_REPORT_PASSWORD`，系统还会生成一个加密完整报告：
+
+```text
+https://gangjing.github.io/PIN/private/latest_report.html
+```
+
+这个页面可以公开访问，但完整报告内容是密文。打开后输入 `PRIVATE_REPORT_PASSWORD` 才会在浏览器本地解密显示。密码不要写进代码，也不要发给别人。
+
 如果你明确要把完整组合报告也发布到 GitHub Pages，需要在 `config/config.yaml` 中设置：
 
 ```yaml
@@ -147,6 +156,7 @@ GOOGLE_SHEET_GID=0
 
 - 已内置默认 `GOOGLE_SHEET_ID` 和 `GOOGLE_SHEET_GID`
 - 可选 Secrets：`OPENAI_API_KEY`、`BING_SEARCH_API_KEY`
+- 私人完整报告 Secret：`PRIVATE_REPORT_PASSWORD`
 - 可选 Variables：`REPORT_BASE_URL`，例如 `https://gangjing.github.io/PIN`
 - Pages 由 Actions 部署到 GitHub Pages
 - 默认只发布 `docs/share/` 下的单股分享页面；`docs/latest_report.html` 和首页只显示私人报告提示
