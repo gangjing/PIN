@@ -15,7 +15,7 @@ from src.data_loader import load_watchlist
 from src.html_report import render_html
 from src.market_data import enrich_market_data, fetch_market_summary
 from src.news_fetcher import attach_news
-from src.report_generator import apply_privacy, make_summary, write_outputs
+from src.report_generator import apply_privacy, make_public_stock_report, make_summary, write_outputs
 from src.signal_engine import apply_signals, build_priority_actions
 from src.utils import ensure_dirs, load_config, load_env, now_iso, setup_logging
 
@@ -168,7 +168,16 @@ def main() -> int:
             display_path = report_base_url.rstrip("/") + "/latest_report.html"
         report["summary_for_push"] = make_summary(report, display_path)
         html = render_html(report, config.get("color_convention", "CN"))
-        paths = write_outputs(report, config, html)
+        share_htmls = {}
+        public_site = config.get("public_site") or {}
+        if public_site.get("publish_stock_pages", True):
+            for stock in report.get("stocks", []):
+                ticker = stock.get("ticker")
+                if not ticker:
+                    continue
+                share_report = make_public_stock_report(report, ticker)
+                share_htmls[ticker] = render_html(share_report, config.get("color_convention", "CN"))
+        paths = write_outputs(report, config, html, share_htmls)
         logger.info("summary=%s json=%s html=%s log=%s", paths["summary"], paths["json"], paths["html"], log_path)
         print(f"摘要：{paths['summary']}")
         print(f"JSON：{paths['json']}")
