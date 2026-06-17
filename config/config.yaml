@@ -5,8 +5,12 @@ report_base_url: ""
 privacy:
   hide_sensitive_fields: true
   hide_quantity: true
-  hide_cost: false
-  hide_position_pct: false
+  hide_cost: true
+  hide_position_pct: true
+public_site:
+  publish_full_report: false
+  publish_stock_pages: true
+  show_share_index: false
 markets:
   CN:
     enabled: true
