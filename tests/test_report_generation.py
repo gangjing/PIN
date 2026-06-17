@@ -1,5 +1,5 @@
 from src.html_report import render_html
-from src.report_generator import make_summary
+from src.report_generator import make_public_stock_report, make_summary
 
 
 def sample_report():
@@ -13,6 +13,30 @@ def sample_report():
         "summary_for_push": "hello",
         "warnings": [],
     }
+
+
+def multi_stock_report():
+    report = sample_report()
+    report["stocks"].append({
+        "market": "HK",
+        "ticker": "1810.HK",
+        "name": "Xiaomi",
+        "type": "holding",
+        "price": 25,
+        "change_pct": 1.2,
+        "cost": 20,
+        "quantity": 1000,
+        "position_pct": 30,
+        "take_profit": 35,
+        "stop_loss": 18,
+        "notes": "private note",
+        "computed_risk_level": "low",
+        "signals": [],
+        "suggested_action": "观察",
+        "indicators": {},
+        "news": [{"title": "Xiaomi news", "url": "https://example.com", "source": "Test", "sentiment": "neutral"}],
+    })
+    return report
 
 
 def test_summary_contains_disclaimer():
@@ -38,3 +62,21 @@ def test_html_contains_language_theme_and_offline_ui():
     assert "Asset Deep Dive" in html
     assert "Smart News Feed" in html
     assert "https://cdn" not in html
+
+
+def test_public_stock_report_contains_only_selected_stock_and_hides_personal_fields():
+    report = make_public_stock_report(multi_stock_report(), "1810.HK")
+    html = render_html(report)
+    stock = report["stocks"][0]
+
+    assert report["share_mode"] is True
+    assert report["share_ticker"] == "1810.HK"
+    assert len(report["stocks"]) == 1
+    assert stock["ticker"] == "1810.HK"
+    assert "TTD" not in html
+    assert "quantity" not in stock
+    assert "cost" not in stock
+    assert "position_pct" not in stock
+    assert "take_profit" not in stock
+    assert "stop_loss" not in stock
+    assert "private note" not in html
