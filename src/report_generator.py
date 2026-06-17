@@ -181,10 +181,14 @@ def make_public_stock_report(report: Dict[str, Any], ticker: str) -> Dict[str, A
     return public_report
 
 
-def make_private_landing_html(base_url: str = "") -> str:
+def make_private_landing_html(base_url: str = "", include_private_link: bool = False) -> str:
     message = "完整组合报告是私人内容。请使用单只股票分享链接打开公开页面。"
     share_link = f'<p><a href="{base_url.rstrip("/")}/share/">打开分享目录</a></p>' if base_url else ""
-    private_link = f'<p><a href="{base_url.rstrip("/")}/private/latest_report.html">打开加密完整报告</a></p>' if base_url else ""
+    private_link = (
+        f'<p><a href="{base_url.rstrip("/")}/private/latest_report.html">打开加密完整报告</a></p>'
+        if base_url and include_private_link
+        else ""
+    )
     return (
         "<!doctype html><html lang=\"zh-CN\"><meta charset=\"utf-8\">"
         "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
@@ -310,6 +314,8 @@ def write_outputs(
     docs_reports = docs_root / "reports"
     docs_share = docs_root / "share"
     docs_private = docs_root / "private"
+    private_password = os.getenv("PRIVATE_REPORT_PASSWORD", "").strip()
+    base_url = os.getenv("REPORT_BASE_URL") or os.getenv("GITHUB_PAGES_URL") or config.get("report_base_url") or ""
 
     if docs_reports.exists() and not public_site.get("publish_full_report", False):
         shutil.rmtree(docs_reports)
@@ -333,7 +339,7 @@ def write_outputs(
         shutil.copyfile(report_html, docs_report)
         docs_index.write_text(html, encoding="utf-8")
     else:
-        landing = make_private_landing_html(os.getenv("REPORT_BASE_URL") or os.getenv("GITHUB_PAGES_URL") or config.get("report_base_url") or "")
+        landing = make_private_landing_html(base_url, include_private_link=bool(private_password))
         docs_latest.write_text(landing, encoding="utf-8")
         docs_index.write_text(landing, encoding="utf-8")
     if share_pages and public_site.get("show_share_index", False):
@@ -341,7 +347,6 @@ def write_outputs(
     else:
         (docs_share / "index.html").write_text(make_private_landing_html(), encoding="utf-8")
 
-    private_password = os.getenv("PRIVATE_REPORT_PASSWORD", "").strip()
     if private_password:
         encrypted_html = make_encrypted_report_html(html, private_password)
         (docs_private / "latest_report.html").write_text(encrypted_html, encoding="utf-8")
@@ -350,7 +355,6 @@ def write_outputs(
         (docs_private / "index.html").write_text(make_private_landing_html(), encoding="utf-8")
 
     share_links = ROOT / "output" / "share_links.md"
-    base_url = os.getenv("REPORT_BASE_URL") or os.getenv("GITHUB_PAGES_URL") or config.get("report_base_url") or ""
     rows = ["# 单股分享链接", ""]
     for ticker, path in sorted(share_pages.items()):
         url = f"{base_url.rstrip('/')}/{path}" if base_url else str(docs_root / path)
