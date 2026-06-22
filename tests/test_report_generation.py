@@ -33,8 +33,9 @@ def multi_stock_report():
         "stop_loss": 18,
         "notes": "private note",
         "computed_risk_level": "low",
-        "signals": [],
+        "signals": ["above_take_profit", "public_momentum"],
         "suggested_action": "观察",
+        "ai_commentary": "依据：above_take_profit",
         "indicators": {},
         "news": [{"title": "Xiaomi news", "url": "https://example.com", "source": "Test", "sentiment": "neutral"}],
     })
@@ -86,6 +87,8 @@ def test_public_stock_report_contains_only_selected_stock_and_hides_personal_fie
     assert "position_pct" not in stock
     assert "take_profit" not in stock
     assert "stop_loss" not in stock
+    assert "above_take_profit" not in html
+    assert "public_momentum" in html
     assert "private note" not in html
 
 
