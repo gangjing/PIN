@@ -23,7 +23,9 @@ def local_analysis(report: Dict[str, Any]) -> Dict[str, Any]:
 def call_openai(report: Dict[str, Any]) -> Dict[str, Any]:
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
     if not api_key:
-        return local_analysis(report)
+        report = local_analysis(report)
+        report["ai_status"] = "skipped"
+        return report
     payload = {
         "watchlist": [{k: s.get(k) for k in ["market", "ticker", "name", "type", "cost", "position_pct", "take_profit", "stop_loss"]} for s in report.get("stocks", [])],
         "market_data": report.get("stocks", []),
@@ -51,7 +53,9 @@ def call_openai(report: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as exc:
         logger.warning("OpenAI failed: %s", exc)
         report["warnings"].append("OpenAI API 调用失败，已使用本地规则生成分析。")
-        return local_analysis(report)
+        report = local_analysis(report)
+        report["ai_status"] = "fallback"
+        return report
 
 
 def merge_ai(report: Dict[str, Any], ai: Dict[str, Any]) -> None:
