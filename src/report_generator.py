@@ -218,6 +218,45 @@ def make_share_index_html(share_pages: Dict[str, str]) -> str:
     )
 
 
+def make_manifest_json() -> str:
+    import json
+
+    return json.dumps({
+        "name": "FinAnalysis Daily Agent",
+        "short_name": "FinAnalysis",
+        "start_url": "./",
+        "scope": "./",
+        "display": "standalone",
+        "background_color": "#f5f4ed",
+        "theme_color": "#1B365D",
+        "description": "Personal daily investment research agent reports.",
+        "icons": [
+            {
+                "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%231B365D'/%3E%3Ctext x='64' y='78' text-anchor='middle' font-size='42' font-family='Arial' fill='%23fffdf6'%3EFA%3C/text%3E%3C/svg%3E",
+                "sizes": "128x128",
+                "type": "image/svg+xml",
+                "purpose": "any maskable",
+            }
+        ],
+    }, ensure_ascii=False, indent=2)
+
+
+def make_service_worker_js(share_pages: Dict[str, str], has_private_report: bool) -> str:
+    urls = ["./", "./latest_report.html", "./share/"]
+    urls.extend("./" + path for path in sorted(share_pages.values()))
+    if has_private_report:
+        urls.append("./private/latest_report.html")
+    import json
+
+    return (
+        "const CACHE='finanalysis-v1';\n"
+        f"const URLS={json.dumps(urls, ensure_ascii=False)};\n"
+        "self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(URLS)).catch(()=>undefined));self.skipWaiting();});\n"
+        "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))));self.clients.claim();});\n"
+        "self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response;}).catch(()=>caches.match(event.request).then(cached=>cached||caches.match('./'))));});\n"
+    )
+
+
 def write_json_text(payload: Dict[str, Any]) -> str:
     import json
 
@@ -360,4 +399,6 @@ def write_outputs(
         url = f"{base_url.rstrip('/')}/{path}" if base_url else str(docs_root / path)
         rows.append(f"- {ticker}: {url}")
     share_links.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    (docs_root / "manifest.webmanifest").write_text(make_manifest_json(), encoding="utf-8")
+    (docs_root / "sw.js").write_text(make_service_worker_js(share_pages, bool(private_password)), encoding="utf-8")
     return {"html": latest_html, "json": latest_json, "summary": latest_md, "archive_html": report_html}
