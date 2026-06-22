@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -21,6 +22,17 @@ from src.utils import ensure_dirs, load_config, load_env, now_iso, setup_logging
 
 
 logger = logging.getLogger(__name__)
+
+
+def load_previous_report() -> Dict[str, Any]:
+    path = Path(__file__).resolve().parents[1] / "output" / "latest_report.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        logger.warning("previous report could not be loaded: %s", exc)
+        return {}
 
 
 def build_portfolio_metrics(stocks: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -106,6 +118,104 @@ def build_portfolio_metrics(stocks: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def build_run_status(report: Dict[str, Any]) -> Dict[str, Any]:
+    stocks = report.get("stocks", [])
+    news_count = sum(len(stock.get("news") or []) for stock in stocks)
+    warnings = report.get("warnings") or []
+    return {
+        "status": "success" if not warnings else "success_with_warnings",
+        "run_time": report.get("run_time"),
+        "google_sheet": "success",
+        "market_data": "success",
+        "news": "success" if news_count else "empty",
+        "ai": report.get("ai_status", "unknown"),
+        "warnings": warnings,
+        "asset_count": len(stocks),
+        "news_count": news_count,
+    }
+
+
+def build_daily_diff(previous: Dict[str, Any], current: Dict[str, Any]) -> Dict[str, Any]:
+    if not previous:
+        return {
+            "has_previous": False,
+            "previous_run_time": None,
+            "risk_changes": [],
+            "action_changes": [],
+            "new_signals": [],
+            "new_news": [],
+            "price_changes": [],
+        }
+    previous_by_ticker = {stock.get("ticker"): stock for stock in previous.get("stocks", [])}
+    risk_changes = []
+    action_changes = []
+    new_signals = []
+    new_news = []
+    price_changes = []
+    for stock in current.get("stocks", []):
+        ticker = stock.get("ticker")
+        old = previous_by_ticker.get(ticker)
+        if not old:
+            continue
+        old_risk = old.get("computed_risk_level") or old.get("risk_level")
+        new_risk = stock.get("computed_risk_level") or stock.get("risk_level")
+        if old_risk != new_risk:
+            risk_changes.append({
+                "ticker": ticker,
+                "name": stock.get("name"),
+                "from": old_risk,
+                "to": new_risk,
+            })
+        old_action = old.get("suggested_action")
+        new_action = stock.get("suggested_action")
+        if old_action != new_action:
+            action_changes.append({
+                "ticker": ticker,
+                "name": stock.get("name"),
+                "from": old_action,
+                "to": new_action,
+            })
+        old_signals = set(old.get("signals") or [])
+        for signal in stock.get("signals") or []:
+            if signal not in old_signals:
+                new_signals.append({"ticker": ticker, "name": stock.get("name"), "signal": signal})
+        old_titles = {item.get("title") for item in old.get("news") or []}
+        for item in stock.get("news") or []:
+            if item.get("title") and item.get("title") not in old_titles:
+                new_news.append({
+                    "ticker": ticker,
+                    "name": stock.get("name"),
+                    "title": item.get("title"),
+                    "source": item.get("source"),
+                    "sentiment": item.get("sentiment"),
+                    "url": item.get("url"),
+                })
+        old_price = old.get("price")
+        new_price = stock.get("price")
+        if old_price is not None and new_price is not None:
+            try:
+                change_pct = (float(new_price) - float(old_price)) / float(old_price) * 100
+            except (TypeError, ValueError, ZeroDivisionError):
+                change_pct = None
+            if change_pct is not None and abs(change_pct) >= 1:
+                price_changes.append({
+                    "ticker": ticker,
+                    "name": stock.get("name"),
+                    "from": old_price,
+                    "to": new_price,
+                    "change_pct": change_pct,
+                })
+    return {
+        "has_previous": True,
+        "previous_run_time": previous.get("run_time"),
+        "risk_changes": risk_changes[:12],
+        "action_changes": action_changes[:12],
+        "new_signals": new_signals[:16],
+        "new_news": new_news[:20],
+        "price_changes": sorted(price_changes, key=lambda item: abs(float(item.get("change_pct") or 0)), reverse=True)[:12],
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="个人每日自动看盘助手")
     parser.add_argument("--config", default="config/config.yaml")
@@ -161,7 +271,10 @@ def main() -> int:
     log_path = setup_logging()
     config = load_config(args.config)
     try:
+        previous_report = load_previous_report()
         report = build_report(args, config)
+        report["run_status"] = build_run_status(report)
+        report["daily_diff"] = build_daily_diff(previous_report, report)
         display_path = str(Path(__file__).resolve().parents[1] / "output" / "latest_report.html")
         report_base_url = os.getenv("REPORT_BASE_URL") or os.getenv("GITHUB_PAGES_URL") or config.get("report_base_url")
         if report_base_url:
