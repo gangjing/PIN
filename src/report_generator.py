@@ -98,6 +98,7 @@ PUBLIC_STOCK_REMOVE_FIELDS = {
     "watch_reason",
     "notes",
 }
+PUBLIC_SIGNAL_REMOVE_MARKERS = ("stop_loss", "take_profit", "cost", "position")
 
 
 def public_stock_slug(ticker: str) -> str:
@@ -111,6 +112,14 @@ def sanitize_public_stock(stock: Dict[str, Any]) -> Dict[str, Any]:
     public = copy.deepcopy(stock)
     for field in PUBLIC_STOCK_REMOVE_FIELDS:
         public.pop(field, None)
+    for field in ("signals", "risk_signals", "opportunity_signals"):
+        public[field] = [
+            signal for signal in public.get(field, [])
+            if not any(marker in str(signal) for marker in PUBLIC_SIGNAL_REMOVE_MARKERS)
+        ]
+    commentary = public.get("ai_commentary")
+    if commentary and any(marker in str(commentary) for marker in PUBLIC_SIGNAL_REMOVE_MARKERS):
+        public["ai_commentary"] = public.get("suggested_action") or ""
     if public.get("type") == "holding":
         public["type"] = "watchlist"
     return public
