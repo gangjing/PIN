@@ -1,0 +1,18 @@
+{
+  "name": "FinAnalysis Daily Agent",
+  "short_name": "FinAnalysis",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f4ed",
+  "theme_color": "#1B365D",
+  "description": "Personal daily investment research agent reports.",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%231B365D'/%3E%3Ctext x='64' y='78' text-anchor='middle' font-size='42' font-family='Arial' fill='%23fffdf6'%3EFA%3C/text%3E%3C/svg%3E",
+      "sizes": "128x128",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
