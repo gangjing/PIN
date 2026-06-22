@@ -1,5 +1,5 @@
 from src.html_report import render_html
-from src.report_generator import make_encrypted_report_html, make_public_stock_report, make_summary
+from src.report_generator import make_encrypted_report_html, make_public_stock_report, make_service_worker_js, make_summary
 
 
 def sample_report():
@@ -11,6 +11,8 @@ def sample_report():
         "priority_actions": [{"ticker": "TTD", "name": "Trade Desk", "reason": "接近止损", "action": "人工确认", "urgency": "high"}],
         "stocks": [{"market": "US", "ticker": "TTD", "name": "Trade Desk", "type": "holding", "price": 70, "change_pct": -2, "cost": 75, "position_pct": 20, "computed_risk_level": "high", "signals": ["near_stop_loss"], "suggested_action": "人工确认", "indicators": {}, "news": []}],
         "summary_for_push": "hello",
+        "run_status": {"status": "success", "google_sheet": "success", "market_data": "success", "news": "empty", "ai": "skipped"},
+        "daily_diff": {"has_previous": False},
         "warnings": [],
     }
 
@@ -62,6 +64,11 @@ def test_html_contains_language_theme_and_offline_ui():
     assert "Asset Deep Dive" in html
     assert "Smart News Feed" in html
     assert "https://cdn" not in html
+    assert 'rel="manifest"' in html
+    assert "serviceWorker" in html
+    assert "运行状态" in html
+    assert "昨日对比" in html
+    assert "og:title" in html
 
 
 def test_public_stock_report_contains_only_selected_stock_and_hides_personal_fields():
@@ -80,6 +87,13 @@ def test_public_stock_report_contains_only_selected_stock_and_hides_personal_fie
     assert "take_profit" not in stock
     assert "stop_loss" not in stock
     assert "private note" not in html
+
+
+def test_service_worker_caches_share_pages_and_private_report():
+    js = make_service_worker_js({"1810.HK": "share/1810.HK.html"}, True)
+    assert "./share/1810.HK.html" in js
+    assert "./private/latest_report.html" in js
+    assert "caches.open" in js
 
 
 def test_encrypted_report_hides_plain_html_and_can_be_decrypted():
