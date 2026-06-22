@@ -79,6 +79,12 @@ def test_public_stock_report_contains_only_selected_stock_and_hides_personal_fie
 
     assert report["share_mode"] is True
     assert report["share_ticker"] == "1810.HK"
+    assert report["run_status"]["status"] == "success"
+    assert report["run_status"]["google_sheet"] == "success"
+    assert report["run_status"]["market_data"] == "success"
+    assert report["run_status"]["news"] == "success"
+    assert report["run_status"]["asset_count"] == 1
+    assert report["run_status"]["news_count"] == 1
     assert len(report["stocks"]) == 1
     assert stock["ticker"] == "1810.HK"
     assert "TTD" not in html
