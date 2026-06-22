@@ -145,6 +145,18 @@ def make_public_stock_report(report: Dict[str, Any], ticker: str) -> Dict[str, A
     negative_news_count = sum(1 for item in public_stock.get("news") or [] if item.get("sentiment") == "negative")
     risk_level = public_stock.get("computed_risk_level") or "low"
     risk_score = min(100, 36 + (32 if risk_level == "high" else 14 if risk_level == "medium" else 0) + negative_news_count * 6)
+    source_status = copy.deepcopy(report.get("run_status") or {})
+    public_status = {
+        "status": source_status.get("status") or "success",
+        "run_time": report.get("run_time"),
+        "google_sheet": source_status.get("google_sheet") or "success",
+        "market_data": source_status.get("market_data") or "success",
+        "news": "success" if news_count else "empty",
+        "ai": source_status.get("ai") or report.get("ai_status", "unknown"),
+        "warnings": source_status.get("warnings") or [],
+        "asset_count": 1,
+        "news_count": news_count,
+    }
 
     public_report = {
         "run_time": report.get("run_time"),
@@ -184,6 +196,8 @@ def make_public_stock_report(report: Dict[str, Any], ticker: str) -> Dict[str, A
         },
         "stocks": [public_stock],
         "summary_for_push": "",
+        "run_status": public_status,
+        "daily_diff": {"has_previous": False},
         "warnings": [],
     }
     public_report["summary_for_push"] = make_summary(public_report)
